@@ -33,7 +33,6 @@ fn frustum_culling<T: 'static + BoundingVolume + Send + Sync>(
         let nbr_world = ndc_to_world.transform_point3(Vec3::new(1.0, -1.0, -1.0));
         let ntl_world = ndc_to_world.transform_point3(Vec3::new(-1.0, 1.0, -1.0));
         let fbl_world = ndc_to_world.transform_point3(Vec3::new(-1.0, -1.0, 1.0));
-
         let ftr_world = ndc_to_world.transform_point3(Vec3::new(1.0, 1.0, 1.0));
         let ftl_world = ndc_to_world.transform_point3(Vec3::new(-1.0, 1.0, 1.0));
         let fbr_world = ndc_to_world.transform_point3(Vec3::new(1.0, -1.0, 1.0));
