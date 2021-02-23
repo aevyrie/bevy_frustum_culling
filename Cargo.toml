@@ -7,3 +7,13 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+#bevy = { version = "0.4", default-features = false, features = ["render"] }
+bevy = { git = "https://github.com/bevyengine/bevy", branch = "main", default-features = false, features = ["render"] }
+bevy_mod_bounding = { git = "https://github.com/aevyrie/bevy_mod_bounding", branch = "master" }
+
+[features]
+ex = ["bevy/bevy_wgpu", "bevy/bevy_winit", "bevy/bevy_gltf", "bevy/x11"]
+
+[[example]]
+name = "demo"
+required-features = ["ex"]
