@@ -10,10 +10,11 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
-        .add_plugin(BoundingVolumePlugin::<AxisAlignedBB>::default())
-        .add_plugin(FrustumCullingPlugin::<AxisAlignedBB>::default())
+        .add_plugin(BoundingVolumePlugin::<obb::OrientedBB>::default())
+        .add_plugin(FrustumCullingPlugin::<obb::OrientedBB>::default())
         .add_startup_system(setup.system())
-        .add_system(rotation_system.system())
+        .add_system(camera_rotation_system.system())
+        .add_system(mesh_rotation_system.system())
         .run();
 }
 
@@ -35,7 +36,7 @@ fn setup(
     commands
         .spawn(PerspectiveCameraBundle {
             transform: Transform::from_matrix(Mat4::face_toward(
-                Vec3::new(15.0, 15.0, 15.0),
+                Vec3::new(10.0, 10.0, 10.0),
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(0.0, 1.0, 0.0),
             )),
@@ -54,7 +55,7 @@ fn setup(
             ..Default::default()
         })
         .with(FrustumCulling)
-        .with(Rotator)
+        .with(CameraRotator)
         .with_children(|parent| {
             parent.spawn(PbrBundle {
                 mesh: cube_handle,
@@ -67,31 +68,51 @@ fn setup(
             ..Default::default()
         });
 
-    for x in -20..20 {
-        for y in -20..20 {
-            for z in -20..20 {
-                commands
-                    .spawn(PbrBundle {
-                        mesh: mesh_handle.clone(),
-                        material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-                        transform: Transform::from_translation(Vec3::new(
-                            x as f32 * 1.0,
-                            y as f32 * 1.0,
-                            z as f32 * 1.0,
-                        )),
-                        ..Default::default()
-                    })
-                    .with(AddBoundingVolume::<AxisAlignedBB>::default());
+    for x in -10..10 {
+        for y in -10..10 {
+            for z in -10..10 {
+                if !(x == 0 && y == 0 && z == 0) {
+                    commands
+                        .spawn(PbrBundle {
+                            mesh: mesh_handle.clone(),
+                            material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
+                            transform: Transform::from_translation(Vec3::new(
+                                x as f32 * 1.5,
+                                y as f32 * 1.5,
+                                z as f32 * 1.5,
+                            )),
+                            ..Default::default()
+                        })
+                        .with(MeshRotator)
+                        .with(Bounded::<obb::OrientedBB>::default());
+                    //.with(DebugBounds);
+                }
             }
         }
     }
 }
 
-struct Rotator;
+struct CameraRotator;
 
-fn rotation_system(time: Res<Time>, mut query: Query<&mut Transform, With<Rotator>>) {
+fn camera_rotation_system(time: Res<Time>, mut query: Query<&mut Transform, With<CameraRotator>>) {
     for mut transform in query.iter_mut() {
         let rot_y = Quat::from_rotation_y(time.seconds_since_startup() as f32 * 2.0);
         *transform = Transform::from_rotation(rot_y);
+    }
+}
+
+struct MeshRotator;
+
+fn mesh_rotation_system(time: Res<Time>, mut query: Query<&mut Transform, With<MeshRotator>>) {
+    for mut transform in query.iter_mut() {
+        let scale = Vec3::one() * ((time.seconds_since_startup() as f32).sin() + 2.0);
+        let rot_x =
+            Quat::from_rotation_x((time.seconds_since_startup() as f32 / 5.0).sin() / 100.0);
+        let rot_y =
+            Quat::from_rotation_y((time.seconds_since_startup() as f32 / 3.0).sin() / 100.0);
+        let rot_z =
+            Quat::from_rotation_z((time.seconds_since_startup() as f32 / 4.0).sin() / 100.0);
+        transform.scale = scale;
+        transform.rotate(rot_x * rot_y * rot_z);
     }
 }
