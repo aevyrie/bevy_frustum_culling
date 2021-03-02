@@ -84,8 +84,14 @@ fn setup(
                             ..Default::default()
                         })
                         .with(MeshRotator)
-                        .with(Bounded::<obb::OrientedBB>::default());
-                    //.with(DebugBounds);
+                        .with(obb::OrientedBB::from_aabb_orientation(
+                            aabb::AxisAlignedBB::from_extents(
+                                Vec3::new(-0.05437539, -0.13022034, -0.0543754),
+                                Vec3::new(0.05437539, 0.13022034, 0.054375406),
+                            ),
+                            Quat::from_xyzw(0.0, 0.1305262, 0.0, 0.9914449),
+                        ))
+                        .with(debug::DebugBounds);
                 }
             }
         }
