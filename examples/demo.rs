@@ -84,6 +84,8 @@ fn setup(
                             ..Default::default()
                         })
                         .with(MeshRotator)
+                        // Manually set the bounding volume of the mesh. We can precompute the
+                        // bounds and specify them. Computing for every mesh makes startup slow.
                         .with(obb::OrientedBB::from_aabb_orientation(
                             aabb::AxisAlignedBB::from_extents(
                                 Vec3::new(-0.05437539, -0.13022034, -0.0543754),
