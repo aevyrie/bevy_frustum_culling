@@ -1,7 +1,6 @@
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
-    render::camera::Camera,
 };
 
 use bevy_frustum_culling::*;
@@ -10,7 +9,7 @@ use bevy_mod_bounding::*;
 fn main() {
     App::build()
         .insert_resource(WindowDescriptor {
-            vsync: true,
+            vsync: false,
             ..Default::default()
         })
         //.insert_resource(ReportExecutionOrderAmbiguities)
@@ -88,9 +87,9 @@ fn setup(
                             mesh: mesh_handle.clone(),
                             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
                             transform: Transform::from_translation(Vec3::new(
-                                x as f32 * 1.5,
-                                y as f32 * 1.5,
-                                z as f32 * 1.5,
+                                x as f32 * 2.0,
+                                y as f32 * 2.0,
+                                z as f32 * 2.0,
                             )),
                             ..Default::default()
                         })
@@ -115,7 +114,7 @@ struct CameraRotator;
 
 fn camera_rotation_system(time: Res<Time>, mut query: Query<&mut Transform, With<CameraRotator>>) {
     for mut transform in query.iter_mut() {
-        let rot_y = Quat::from_rotation_y(time.seconds_since_startup() as f32 * 2.0);
+        let rot_y = Quat::from_rotation_y((0.2 * time.seconds_since_startup() as f32).sin() * 4.0);
         *transform = Transform::from_rotation(rot_y);
     }
 }
@@ -124,7 +123,7 @@ struct MeshRotator;
 
 fn mesh_rotation_system(time: Res<Time>, mut query: Query<&mut Transform, With<MeshRotator>>) {
     for mut transform in query.iter_mut() {
-        let scale = Vec3::ONE * ((time.seconds_since_startup() as f32).sin() + 2.0);
+        let scale = Vec3::ONE * ((time.seconds_since_startup() as f32).sin() + 1.5);
         let rot_x =
             Quat::from_rotation_x((time.seconds_since_startup() as f32 / 5.0).sin() / 100.0);
         let rot_y =

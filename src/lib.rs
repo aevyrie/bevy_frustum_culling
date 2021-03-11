@@ -1,6 +1,6 @@
 use bevy::{prelude::*, render::camera::Camera, tasks::ComputeTaskPool};
 use bevy_mod_bounding::*;
-use std::{borrow::Cow, marker::PhantomData};
+use std::marker::PhantomData;
 
 #[derive(Default)]
 pub struct FrustumCullingPlugin<T>(PhantomData<T>);
@@ -10,10 +10,8 @@ impl<T: 'static + Send + Sync + BoundingVolume> Plugin for FrustumCullingPlugin<
             CoreStage::PostUpdate,
             frustum_culling::<T>
                 .system()
-                .after(Cow::Owned(format!(
-                    "update_boundvols_{}",
-                    std::any::type_name::<T>()
-                )))
+                .after(BoundingSystem::UpdateBounds)
+                .after(bevy::transform::TransformSystem::TransformPropagate)
                 .before(bevy::render::RenderSystem::VisibleEntities),
         );
     }
@@ -43,9 +41,9 @@ fn frustum_culling<T: 'static + BoundingVolume + Send + Sync>(
         let near_plane = (nbr_world - nbl_world)
             .cross(ntl_world - nbl_world)
             .normalize();
-        //let far_plane = (fbr_world - ftr_world)
-        //    .cross(ftl_world - ftr_world)
-        //    .normalize();
+        let far_plane = (fbr_world - ftr_world)
+            .cross(ftl_world - ftr_world)
+            .normalize();
         let top_plane = (ftl_world - ftr_world)
             .cross(ntr_world - ftr_world)
             .normalize();
@@ -59,19 +57,22 @@ fn frustum_culling<T: 'static + BoundingVolume + Send + Sync>(
             .cross(fbl_world - nbl_world)
             .normalize();
 
-        let frustum_plane_list = [left_plane, right_plane, bottom_plane, top_plane, near_plane];
+        let frustum_plane_list = [
+            (nbl_world, left_plane),
+            (ftr_world, right_plane),
+            (nbl_world, bottom_plane),
+            (ftr_world, top_plane),
+            (nbl_world, near_plane),
+            (ftr_world, far_plane),
+        ];
 
         // If a bounding volume is entirely outside of any camera frustum plane, it is not visible.
         bound_vol_query.par_for_each_mut(
             &pool,
             32,
             |(bound_vol, bound_vol_position, mut visible)| {
-                for plane_normal in frustum_plane_list.iter() {
-                    if bound_vol.outside_plane(
-                        bound_vol_position,
-                        camera_position.translation,
-                        *plane_normal,
-                    ) {
+                for (plane_point, plane_normal) in frustum_plane_list.iter() {
+                    if bound_vol.outside_plane(bound_vol_position, *plane_point, *plane_normal) {
                         visible.is_visible = false;
                         return;
                     }
