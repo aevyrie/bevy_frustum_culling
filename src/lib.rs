@@ -1,4 +1,3 @@
-use bevy::tasks::ParallelIterator;
 use bevy::{prelude::*, render::camera::Camera, tasks::ComputeTaskPool};
 use bevy_mod_bounding::*;
 use std::{borrow::Cow, marker::PhantomData};
@@ -9,10 +8,13 @@ impl<T: 'static + Send + Sync + BoundingVolume> Plugin for FrustumCullingPlugin<
     fn build(&self, app: &mut AppBuilder) {
         app.add_system_to_stage(
             CoreStage::PostUpdate,
-            frustum_culling::<T>.system().after(Cow::Owned(format!(
-                "update_boundvols_{}",
-                std::any::type_name::<T>()
-            ))),
+            frustum_culling::<T>
+                .system()
+                .after(Cow::Owned(format!(
+                    "update_boundvols_{}",
+                    std::any::type_name::<T>()
+                )))
+                .before(bevy::render::RenderSystem::VisibleEntities),
         );
     }
 }
@@ -29,14 +31,14 @@ fn frustum_culling<T: 'static + BoundingVolume + Send + Sync>(
         let ndc_to_world: Mat4 =
             camera_position.compute_matrix() * camera.projection_matrix.inverse();
         // Near/Far, Top/Bottom, Left/Right
-        let nbl_world = ndc_to_world.transform_point3(Vec3::new(-1.0, -1.0, -1.0));
-        let nbr_world = ndc_to_world.transform_point3(Vec3::new(1.0, -1.0, -1.0));
-        let ntl_world = ndc_to_world.transform_point3(Vec3::new(-1.0, 1.0, -1.0));
-        let fbl_world = ndc_to_world.transform_point3(Vec3::new(-1.0, -1.0, 1.0));
-        let ftr_world = ndc_to_world.transform_point3(Vec3::new(1.0, 1.0, 1.0));
-        let ftl_world = ndc_to_world.transform_point3(Vec3::new(-1.0, 1.0, 1.0));
-        let fbr_world = ndc_to_world.transform_point3(Vec3::new(1.0, -1.0, 1.0));
-        let ntr_world = ndc_to_world.transform_point3(Vec3::new(1.0, 1.0, -1.0));
+        let nbl_world = ndc_to_world.project_point3(Vec3::new(-1.0, -1.0, -1.0));
+        let nbr_world = ndc_to_world.project_point3(Vec3::new(1.0, -1.0, -1.0));
+        let ntl_world = ndc_to_world.project_point3(Vec3::new(-1.0, 1.0, -1.0));
+        let fbl_world = ndc_to_world.project_point3(Vec3::new(-1.0, -1.0, 1.0));
+        let ftr_world = ndc_to_world.project_point3(Vec3::new(1.0, 1.0, 1.0));
+        let ftl_world = ndc_to_world.project_point3(Vec3::new(-1.0, 1.0, 1.0));
+        let fbr_world = ndc_to_world.project_point3(Vec3::new(1.0, -1.0, 1.0));
+        let ntr_world = ndc_to_world.project_point3(Vec3::new(1.0, 1.0, -1.0));
         // Compute plane normals
         let near_plane = (nbr_world - nbl_world)
             .cross(ntl_world - nbl_world)
@@ -60,8 +62,9 @@ fn frustum_culling<T: 'static + BoundingVolume + Send + Sync>(
         let frustum_plane_list = [left_plane, right_plane, bottom_plane, top_plane, near_plane];
 
         // If a bounding volume is entirely outside of any camera frustum plane, it is not visible.
-        bound_vol_query.par_iter_mut(32).for_each(
+        bound_vol_query.par_for_each_mut(
             &pool,
+            32,
             |(bound_vol, bound_vol_position, mut visible)| {
                 for plane_normal in frustum_plane_list.iter() {
                     if bound_vol.outside_plane(

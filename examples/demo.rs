@@ -1,4 +1,8 @@
-use bevy::{prelude::*, render::camera::Camera};
+use bevy::{
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+    render::camera::Camera,
+};
 
 use bevy_frustum_culling::*;
 use bevy_mod_bounding::*;
@@ -6,20 +10,23 @@ use bevy_mod_bounding::*;
 fn main() {
     App::build()
         .insert_resource(WindowDescriptor {
-            vsync: false,
+            vsync: true,
             ..Default::default()
         })
+        //.insert_resource(ReportExecutionOrderAmbiguities)
         .add_plugins(DefaultPlugins)
         .add_plugin(BoundingVolumePlugin::<obb::OrientedBB>::default())
         .add_plugin(FrustumCullingPlugin::<obb::OrientedBB>::default())
         .add_startup_system(setup.system())
         .add_system(camera_rotation_system.system())
         .add_system(mesh_rotation_system.system())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(LogDiagnosticsPlugin::default())
         .run();
 }
 
 fn setup(
-    commands: &mut Commands,
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -34,6 +41,7 @@ fn setup(
     let mesh_handle = asset_server.get_handle(mesh_path);
 
     commands
+        /*
         .spawn(PerspectiveCameraBundle {
             transform: Transform::from_matrix(Mat4::face_toward(
                 Vec3::new(10.0, 10.0, 10.0),
@@ -42,11 +50,14 @@ fn setup(
             )),
             ..Default::default()
         })
+        */
         .spawn(PerspectiveCameraBundle {
+            /*
             camera: Camera {
                 name: Some("Secondary".to_string()),
                 ..Default::default()
             },
+            */
             transform: Transform::from_matrix(Mat4::face_toward(
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(0.0, 0.0, 1.0),
@@ -113,7 +124,7 @@ struct MeshRotator;
 
 fn mesh_rotation_system(time: Res<Time>, mut query: Query<&mut Transform, With<MeshRotator>>) {
     for mut transform in query.iter_mut() {
-        let scale = Vec3::one() * ((time.seconds_since_startup() as f32).sin() + 2.0);
+        let scale = Vec3::ONE * ((time.seconds_since_startup() as f32).sin() + 2.0);
         let rot_x =
             Quat::from_rotation_x((time.seconds_since_startup() as f32 / 5.0).sin() / 100.0);
         let rot_y =
