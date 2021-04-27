@@ -14,8 +14,8 @@ fn main() {
         })
         //.insert_resource(ReportExecutionOrderAmbiguities)
         .add_plugins(DefaultPlugins)
-        .add_plugin(BoundingVolumePlugin::<obb::OrientedBB>::default())
-        .add_plugin(FrustumCullingPlugin::<obb::OrientedBB>::default())
+        .add_plugin(BoundingVolumePlugin::<obb::Obb>::default())
+        .add_plugin(FrustumCullingPlugin::<obb::Obb>::default())
         .add_startup_system(setup.system())
         .add_system(camera_rotation_system.system())
         .add_system(mesh_rotation_system.system())
@@ -30,13 +30,10 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mesh_path = "models/waterbottle/WaterBottle.gltf#Mesh0/Primitive0";
+    let mesh_path = "models/Monkey.gltf#Mesh0/Primitive0";
     let _scenes: Vec<HandleUntyped> = asset_server.load_folder("models").unwrap();
     let cube_handle = meshes.add(Mesh::from(shape::Cube { size: 1.0 }));
-    let cube_material_handle = materials.add(StandardMaterial {
-        albedo: Color::rgb(0.8, 0.7, 0.6),
-        ..Default::default()
-    });
+    let cube_material_handle = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
     let mesh_handle = asset_server.get_handle(mesh_path);
 
     commands
@@ -50,7 +47,8 @@ fn setup(
             ..Default::default()
         })
         */
-        .spawn(PerspectiveCameraBundle {
+        .spawn()
+        .insert_bundle(PerspectiveCameraBundle {
             /*
             camera: Camera {
                 name: Some("Secondary".to_string()),
@@ -64,16 +62,16 @@ fn setup(
             )),
             ..Default::default()
         })
-        .with(FrustumCulling)
-        .with(CameraRotator)
+        .insert(FrustumCulling)
+        .insert(CameraRotator)
         .with_children(|parent| {
-            parent.spawn(PbrBundle {
+            parent.spawn().insert_bundle(PbrBundle {
                 mesh: cube_handle,
                 material: cube_material_handle,
                 ..Default::default()
             });
         })
-        .spawn(LightBundle {
+        .insert_bundle(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
             ..Default::default()
         });
@@ -83,7 +81,8 @@ fn setup(
             for z in -10..10 {
                 if !(x == 0 && y == 0 && z == 0) {
                     commands
-                        .spawn(PbrBundle {
+                        .spawn()
+                        .insert_bundle(PbrBundle {
                             mesh: mesh_handle.clone(),
                             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
                             transform: Transform::from_translation(Vec3::new(
@@ -93,17 +92,11 @@ fn setup(
                             )),
                             ..Default::default()
                         })
-                        .with(MeshRotator)
-                        // Manually set the bounding volume of the mesh. We can precompute the
+                        .insert(MeshRotator)
+                        // Manually set the bounding volume of the mesh. We can pre-compute the
                         // bounds and specify them. Computing for every mesh makes startup slow.
-                        .with(obb::OrientedBB::from_aabb_orientation(
-                            aabb::AxisAlignedBB::from_extents(
-                                Vec3::new(-0.05437539, -0.13022034, -0.0543754),
-                                Vec3::new(0.05437539, 0.13022034, 0.054375406),
-                            ),
-                            Quat::from_xyzw(0.0, 0.1305262, 0.0, 0.9914449),
-                        ))
-                        .with(debug::DebugBounds);
+                        .insert(obb::Obb::default())
+                        .insert(debug::DebugBounds);
                 }
             }
         }
@@ -123,7 +116,7 @@ struct MeshRotator;
 
 fn mesh_rotation_system(time: Res<Time>, mut query: Query<&mut Transform, With<MeshRotator>>) {
     for mut transform in query.iter_mut() {
-        let scale = Vec3::ONE * ((time.seconds_since_startup() as f32).sin() + 1.5);
+        let scale = Vec3::ONE * ((time.seconds_since_startup() as f32).sin() + 1.5) * 0.2;
         let rot_x =
             Quat::from_rotation_x((time.seconds_since_startup() as f32 / 5.0).sin() / 100.0);
         let rot_y =
