@@ -1,5 +1,5 @@
 use bevy::{prelude::*, render::camera::Camera, tasks::ComputeTaskPool};
-use bevy_mod_bounding::*;
+pub use bevy_mod_bounding::*;
 use std::marker::PhantomData;
 
 #[derive(Default)]

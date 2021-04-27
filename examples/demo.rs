@@ -4,7 +4,6 @@ use bevy::{
 };
 
 use bevy_frustum_culling::*;
-use bevy_mod_bounding::*;
 
 fn main() {
     App::build()
