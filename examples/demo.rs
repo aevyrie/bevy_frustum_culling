@@ -35,25 +35,21 @@ fn setup(
     let cube_material_handle = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
     let mesh_handle = asset_server.get_handle(mesh_path);
 
+    commands.spawn().insert_bundle(PerspectiveCameraBundle {
+        transform: Transform::from_matrix(Mat4::face_toward(
+            Vec3::new(10.0, 10.0, 10.0),
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        )),
+        ..Default::default()
+    });
     commands
-        /*
-        .spawn(PerspectiveCameraBundle {
-            transform: Transform::from_matrix(Mat4::face_toward(
-                Vec3::new(10.0, 10.0, 10.0),
-                Vec3::new(0.0, 0.0, 0.0),
-                Vec3::new(0.0, 1.0, 0.0),
-            )),
-            ..Default::default()
-        })
-        */
         .spawn()
         .insert_bundle(PerspectiveCameraBundle {
-            /*
-            camera: Camera {
+            camera: bevy::render::camera::Camera {
                 name: Some("Secondary".to_string()),
                 ..Default::default()
             },
-            */
             transform: Transform::from_matrix(Mat4::face_toward(
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(0.0, 0.0, 1.0),
